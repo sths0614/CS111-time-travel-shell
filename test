@@ -1,0 +1,22 @@
+cat < file | tr a-z A-Z | sort -u || echo sort failed!
+
+cat > A < file
+
+cat < file | tr a-z A-Z | sort -u > B || echo sort failed!
+
+cat <file
+
+echo a; echo b
+
+exec echo c;
+
+(cat < file) > C
+
+echo abc def
+
+(echo abc def)
+
+echo file | wc -l
+
+(echo z || echo b) && echo a | sort | wc -l
+
