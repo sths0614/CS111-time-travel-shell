@@ -44,10 +44,29 @@ command_indented_print (int indent, command_t c)
       abort ();
     }
 
-  if (c->input)
-    printf ("<%s", c->input);
-  if (c->output)
-    printf (">%s", c->output);
+  if (c->output_pipe)
+    printf(">|%s", c->output_pipe);
+  else if (c->input_output)
+    printf("<>%s", c->input_output);
+  else if (c->output2)
+      printf (">>%s", c->output2);
+  else  if (c->output_and)
+      printf (">&%s", c->output_and);
+  else  if (c->input_and)
+      printf ("<&%s", c->input_and);
+  else  if (c->output_pipe)
+      printf (">|%s", c->output_pipe);
+  else{
+    if (c->input)
+      printf ("<%s", c->input);
+    if (c->output)
+      printf (">%s", c->output);
+  }
+  
+
+
+ // fprintf(stderr, "stderr");
+
 }
 
 void

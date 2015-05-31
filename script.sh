@@ -1,8 +1,19 @@
 echo a; echo b
 
+echo hi >& y
+
+echo hi >> y
+
+echo hi <> y
+
+echo hi <& y
+
+echo hi >| y 
+
+
 exec echo c;
 
-(cat < file) > C
+(cat < file) >> C
 
 echo abc def
 

@@ -13,7 +13,7 @@ static char const *script_name;
 static void
 usage (void)
 {
-  error (1, 0, "usage: %s [-pt] SCRIPT-FILE", program_name);
+  error (1, 0, "usage: %s [-ptC] SCRIPT-FILE", program_name);
 }
 
 static int
@@ -28,13 +28,15 @@ main (int argc, char **argv)
   int command_number = 1;
   bool print_tree = false;
   bool time_travel = false;
+  bool design_C = false;
   program_name = argv[0];
 
   for (;;)
-    switch (getopt (argc, argv, "pt"))
+    switch (getopt (argc, argv, "ptC"))
       {
       case 'p': print_tree = true; break;
       case 't': time_travel = true; break;
+      case 'C': design_C = true; break;
       default: usage (); break;
       case -1: goto options_exhausted;
       }
@@ -49,7 +51,7 @@ main (int argc, char **argv)
   if (! script_stream)
     error (1, errno, "%s: cannot open", script_name);
   command_stream_t command_stream =
-    make_command_stream (get_next_byte, script_stream);
+    make_command_stream (get_next_byte, script_stream, design_C);
 
   command_t last_command = NULL;
   command_t command;

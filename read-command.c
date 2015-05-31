@@ -21,6 +21,12 @@ typedef enum {
   RIGHT_BRAC,
   LESS,
   GREATER,
+  GREATER2,
+  GREATER_AND,
+  LESS_GREATER,
+  LESS_AND,
+  GREATER_PIPE,
+
   // COMMENT,
   NONE,
 } tok_type;
@@ -124,7 +130,7 @@ token* getToken(char* buff, int len, int* token_length )
       if (cnt+1!=len)
   next=buff[cnt+1];
       else
-  flag=1;
+  flag=1; //flag is set to 1 if end of character array
       
       switch(curr)
   {  
@@ -226,7 +232,18 @@ token* getToken(char* buff, int len, int* token_length )
     break;
 
   case '<':
-    arr[len_tok].type=LESS;
+  	if(!flag && next == '>'){
+    	arr[len_tok].type = LESS_GREATER;
+    	cnt++;
+    }
+    else if (!flag && next == '&'){
+    	arr[len_tok].type = LESS_AND;
+    	cnt++;
+    }
+    else{
+    	arr[len_tok].type=LESS;
+    }
+    
     arr[len_tok].content=NULL;
     arr[len_tok].lineNo=tree;
     arr[len_tok].errNo=errCount;
@@ -234,7 +251,22 @@ token* getToken(char* buff, int len, int* token_length )
     break;
 
   case '>':
-    arr[len_tok].type=GREATER;
+    if(!flag && next == '>'){
+    	arr[len_tok].type = GREATER2;
+    	cnt++;
+    }
+
+    else if (!flag && next == '&'){
+    	arr[len_tok].type = GREATER_AND;
+    	cnt++;
+    }
+    else if (!flag && next == '|'){
+    	arr[len_tok].type = GREATER_PIPE;
+    	cnt++;
+    }
+    else{
+    	arr[len_tok].type=GREATER;
+    }
     arr[len_tok].content=NULL;
     arr[len_tok].lineNo=tree;
     arr[len_tok].errNo=errCount;
@@ -350,6 +382,8 @@ void combine(stack* operators, stack* operands){
   tmp->u.command[1] = right;
   tmp->input = NULL;
   tmp->output = NULL;
+  tmp->output2 = NULL;
+  tmp->output_and = NULL;
 
   //Push the new command back on the operand stack
   stackPush(operands, tmp);
@@ -371,7 +405,7 @@ int getPrec(enum command_type com){
 
 
 // Make a command tree from the token array, return a command_t when reach a different command tree
-command_t make_command_tree(token* tok, int *start, int *tree_num, int tok_len){
+command_t make_command_tree(token* tok, int *start, int *tree_num, int tok_len, bool design_C){
   
   // Used to check if number of brackets are the same
   int bracFlag = 0;
@@ -588,6 +622,7 @@ command_t make_command_tree(token* tok, int *start, int *tree_num, int tok_len){
         i+=2;
         break;
 
+      
       case GREATER:
         if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
           error(1, 1, "%d:left of GREATER isn't word or RIGHT_BRAC", tok[i].errNo);
@@ -603,6 +638,89 @@ command_t make_command_tree(token* tok, int *start, int *tree_num, int tok_len){
         i+=2;
         break;
 
+      case GREATER2:
+        if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
+          error(1, 1, "%d:left of GREATER2 isn't word or RIGHT_BRAC", tok[i].errNo);
+        }
+
+        if (tok[i+1].type != WORD){
+          error(1, 1, "%d:right of GREATER2 isn't word", tok[i].errNo);
+        }
+
+        cur_cmd = stackPop(operands);
+        cur_cmd->output2 = tok[i+1].content;
+        stackPush(operands, cur_cmd);
+        i+=2;
+        break;
+
+       case GREATER_AND:
+        if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
+          error(1, 1, "%d:left of GREATER_AND isn't word or RIGHT_BRAC", tok[i].errNo);
+        }
+
+        if (tok[i+1].type != WORD){
+          error(1, 1, "%d:right of GREATER_AND isn't word", tok[i].errNo);
+        }
+
+        cur_cmd = stackPop(operands);
+        cur_cmd->output = tok[i+1].content;
+        cur_cmd->output_and = tok[i+1].content;
+
+        stackPush(operands, cur_cmd);
+        i+=2;
+        break;
+
+      case LESS_GREATER:
+        if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
+          error(1, 1, "%d:left of GREATER_AND isn't word or RIGHT_BRAC", tok[i].errNo);
+        }
+
+        if (tok[i+1].type != WORD){
+          error(1, 1, "%d:right of GREATER_AND isn't word", tok[i].errNo);
+        }
+
+        cur_cmd = stackPop(operands);
+        cur_cmd->output = tok[i+1].content;
+        cur_cmd->input = tok[i+1].content;
+        cur_cmd->input_output = tok[i+1].content;
+        stackPush(operands, cur_cmd);
+        i+=2;
+        break;  
+
+       case LESS_AND:
+        if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
+          error(1, 1, "%d:left of GREATER_AND isn't word or RIGHT_BRAC", tok[i].errNo);
+        }
+
+        if (tok[i+1].type != WORD){
+          error(1, 1, "%d:right of GREATER_AND isn't word", tok[i].errNo);
+        }
+
+        cur_cmd = stackPop(operands);
+        cur_cmd->input_and = tok[i+1].content;
+        stackPush(operands, cur_cmd);
+        i+=2;
+        break;  
+
+	  case GREATER_PIPE:
+	  	if (!design_C){
+	  		error(1, 1, "%d:>| not valid without -C", tok[i].errNo);
+	  	}
+
+        if (tok[i-1].type != WORD && tok[i-1].type != RIGHT_BRAC){
+          error(1, 1, "%d:left of GREATER_AND isn't word or RIGHT_BRAC", tok[i].errNo);
+        }
+
+        if (tok[i+1].type != WORD){
+          error(1, 1, "%d:right of GREATER_AND isn't word", tok[i].errNo);
+        }
+
+        cur_cmd = stackPop(operands);
+        cur_cmd->output = tok[i+1].content;
+        cur_cmd->output_pipe = tok[i+1].content;
+        stackPush(operands, cur_cmd);
+        i+=2;
+        break; 
 
 
 
@@ -724,7 +842,7 @@ struct command_stream{
 // End of linked list definition
 
 // Make the whole command stream, returns command_stream_t
-command_stream_t make_command_woods(token* tok, int tok_len){
+command_stream_t make_command_woods(token* tok, int tok_len, bool design_C){
   command_stream_t cmd_str_t = (command_stream_t) checked_malloc(sizeof(command_stream)); 
   cmd_str_t->head = NULL;
   cmd_str_t->tail = NULL;
@@ -738,7 +856,7 @@ command_stream_t make_command_woods(token* tok, int tok_len){
   for (i = 1; i <= total_trees; i++)
   {
 
-    command_t tmp_t = make_command_tree(tok, &start, &i, tok_len);
+    command_t tmp_t = make_command_tree(tok, &start, &i, tok_len, design_C);
     struct commandNode *tmpNode = (struct commandNode*) checked_malloc(sizeof(struct commandNode));
     tmpNode->cmd = tmp_t;
     tmpNode->next = NULL;
@@ -762,7 +880,7 @@ command_stream_t make_command_woods(token* tok, int tok_len){
 // Read in the file, returns the command_stream_t
 command_stream_t
 make_command_stream (int (*get_next_byte) (void *),
-         void *get_next_byte_argument)
+         void *get_next_byte_argument, bool design_C)
 {
   int length;
   char* buffer=getBuffer(get_next_byte, get_next_byte_argument, &length);
@@ -778,7 +896,7 @@ make_command_stream (int (*get_next_byte) (void *),
       fprintf(stderr,"%s ",names[tok_arr[v].type]);
     }
   */
-  command_stream_t cmd_str_t =  make_command_woods(tok_arr, tok_len);
+  command_stream_t cmd_str_t =  make_command_woods(tok_arr, tok_len, design_C);
   return cmd_str_t;
 }
 
